@@ -1,7 +1,10 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 public enum Direction
 {
@@ -10,15 +13,52 @@ public enum Direction
 
 public class GameDataModel
 {
-    public int[,] Data { get; }
-
-    public int Score { get; private set; }
+    private readonly int mSize;
 
     private bool mMoved;
 
-    public GameDataModel()
+    private Func<int, int, int[]> mIteratorFunc = (start, end) =>
     {
-        Data = new int[4,4];
+        var length = Mathf.Abs(end - start);
+
+        var result = new int[length];
+
+        if (start < end)
+        {
+            for (var i = 0; i < length; i++)
+            {
+                result[i] = start + i;
+            }
+        }
+        else
+        {
+            for (var i = 0; i < length; i++)
+            {
+                result[i] = start - i;
+            }
+        }
+
+        return result;
+    };
+
+    public TileModel[,] Data { get; }
+
+    public int Score { get; private set; }
+    
+
+    public GameDataModel(int size)
+    {
+        mSize = size;
+
+        Data = new TileModel[mSize, mSize];
+
+        for (var i = 0; i < mSize; i++)
+        {
+            for (var j = 0; j < mSize; j++)
+            {
+                Data[i, j] = new TileModel(i, j, 0);
+            }
+        }
     }
 
     public void Start()
@@ -39,21 +79,25 @@ public class GameDataModel
         if (direction == Direction.Right)
         {
             MoveRight();
+            
         }
         else if (direction == Direction.Left)
         {
             MoveLeft();
+            
         }
         else if (direction == Direction.Up)
         {
             MoveUp();
+            
         }
         else if (direction == Direction.Down)
         {
             MoveDown();
+            
         }
     }
-
+    
     public void AddNumber()
     {
         if (!mMoved) return;
@@ -68,56 +112,53 @@ public class GameDataModel
 
     void MoveRight()
     {
-        for (var j = Data.GetLength(1) - 1; j >= 0; j--)
+        for (var j = 0; j < mSize; j++)
         {
-            for (var i = Data.GetLength(0) - 1; i >= 0; i--)
+            for (var i = mSize - 1; i >= 0; i--)
             {
-                if (i == 0) continue;
+                if (Data[i, j].Value == 0) continue;
 
-                if (Data[i, j] != 0)
+                var target = i;
+
+                var added = false;
+
+                for (var k = i + 1; k < mSize; k++)
                 {
-                    for (var k = i - 1; k >= 0; k--)
+                    if (Data[k, j].Value == 0)
                     {
-                        if (Data[k, j] == 0) continue;
+                        target = k;
+                    }
+                    else if (Data[k, j].Value == Data[i, j].Value)
+                    {
+                        target = k;
 
-                        if (Data[k, j] != Data[i, j]) break;
-
-                        AddScore(Data[i, j]);
-
-                        Data[i, j] *= 2;
-
-                        Data[k, j] = 0;
-                        
-                        mMoved = true;
+                        added = true;
 
                         break;
                     }
-                }
-                else
-                {
-                    for (var k = i - 1; k >= 0; k--)
+                    else
                     {
-                        if (Data[k, j] == 0) continue;
-                        
-                        if (Data[i, j] == 0)
-                        {
-                            Data[i, j] = Data[k, j];
-
-                            Data[k, j] = 0;
-
-                            mMoved = true;
-                        }
-                        else if(Data[i, j] == Data[k, j])
-                        {
-                            AddScore(Data[i, j]);
-
-                            Data[i, j] *= 2;
-
-                            Data[k, j] = 0;
-
-                            mMoved = true;
-                        }
+                        break;
                     }
+                }
+
+                if (added)
+                {
+                    Data[target, j].Value += Data[i, j].Value;
+
+                    Data[i, j].Value = 0;
+
+                    mMoved = true;
+                }
+                else if (target != i)
+                {
+                    Data[target, j].Value = Data[i, j].Value;
+
+                    Data[i, j].Value = 0;
+
+                    mMoved = true;
+
+                    AddScore(Data[target, j].Value);
                 }
             }
         }
@@ -125,55 +166,53 @@ public class GameDataModel
 
     void MoveLeft()
     {
-        for (var j = Data.GetLength(1) - 1; j >= 0; j--)
+        for (var j = 0; j < mSize; j++)
         {
-            for (var i = 0; i < Data.GetLength(0); i++)
+            for (var i = 0; i < mSize; i++)
             {
-                if (i == Data.GetLength(0) - 1) continue;
+                if (Data[i, j].Value == 0) continue;
 
-                if (Data[i, j] != 0)
+                var target = i;
+
+                var added = false;
+
+                for (var k = i - 1; k >= 0; k--)
                 {
-                    for (var k = i + 1; k < Data.GetLength(0); k++)
+                    if (Data[k, j].Value == 0)
                     {
-                        if (Data[k, j] == 0) continue;
+                        target = k;
+                    }
+                    else if (Data[k, j].Value == Data[i, j].Value)
+                    {
+                        target = k;
 
-                        if(Data[k, j] != Data[i, j]) break;
-
-                        AddScore(Data[i, j]);
-
-                        Data[i, j] *= 2;
-
-                        Data[k, j] = 0;
-
-                        mMoved = true;
+                        added = true;
 
                         break;
                     }
-                }
-                else
-                {
-                    for (var k = i + 1; k < Data.GetLength(0); k++)
+                    else
                     {
-                        if (Data[k, j] == 0) continue;
-
-                        if (Data[i, j] == 0)
-                        {
-                            Data[i, j] = Data[k, j];
-
-                            Data[k, j] = 0;
-
-                            mMoved = true;
-                        }else if (Data[i, j] == Data[k, j])
-                        {
-                            AddScore(Data[i, j]);
-
-                            Data[i, j] *= 2;
-
-                            Data[k, j] = 0;
-
-                            mMoved = true;
-                        }
+                        break;
                     }
+                }
+                
+                if (added)
+                {
+                    Data[target, j].Value += Data[i, j].Value;
+
+                    Data[i, j].Value = 0;
+
+                    mMoved = true;
+                }
+                else if (target != i)
+                {
+                    Data[target, j].Value = Data[i, j].Value;
+
+                    Data[i, j].Value = 0;
+
+                    mMoved = true;
+
+                    AddScore(Data[target, j].Value);
                 }
             }
         }
@@ -181,57 +220,53 @@ public class GameDataModel
 
     void MoveUp()
     {
-        for (var i = 0; i < Data.GetLength(0); i++)
+        for (var i = 0; i < mSize; i++)
         {
-            for (var j = Data.GetLength(1) - 1; j >= 0; j--)
+            for (var j = mSize - 1; j >= 0; j--)
             {
-                if (j == 0) continue;
+                if(Data[i, j].Value == 0) continue;
 
-                if (Data[i, j] != 0)
+                var target = j;
+
+                var added = false;
+
+                for (var k = j + 1; k < mSize; k++)
                 {
-                    //scan down
-                    for (var k = j - 1; k >= 0; k--)
+                    if (Data[i, k].Value == 0)
                     {
-                        if (Data[i, k] == 0) continue;
+                        target = k;
+                    }
+                    else if (Data[i, k].Value == Data[i, j].Value)
+                    {
+                        target = k;
 
-                        if (Data[i, k] != Data[i, j]) break;
-
-                        AddScore(Data[i, j]);
-
-                        Data[i, j] *= 2;
-
-                        Data[i, k] = 0;
-
-                        mMoved = true;
+                        added = true;
 
                         break;
                     }
-                }
-                else
-                {
-                    for (var k = j - 1; k >= 0; k--)
+                    else
                     {
-                        if (Data[i, k] == 0) continue;
-
-                        if (Data[i, j] == 0)
-                        {
-                            Data[i, j] = Data[i, k];
-
-                            Data[i, k] = 0;
-
-                            mMoved = true;
-                        }
-                        else if (Data[i, j] == Data[i, k])
-                        {
-                            AddScore(Data[i, j]);
-
-                            Data[i, j] *= 2;
-
-                            Data[i, k] = 0;
-
-                            mMoved = true;
-                        }
+                        break;
                     }
+                }
+
+                if (added)
+                {
+                    Data[i, target].Value += Data[i, j].Value;
+
+                    Data[i, j].Value = 0;
+
+                    mMoved = true;
+                }
+                else if (target != j)
+                {
+                    Data[i, target].Value = Data[i, j].Value;
+
+                    Data[i, j].Value = 0;
+
+                    mMoved = true;
+
+                    AddScore(Data[i, target].Value);
                 }
             }
         }
@@ -239,56 +274,53 @@ public class GameDataModel
 
     void MoveDown()
     {
-        for (var i = 0; i < Data.GetLength(0); i++)
+        for (var i = 0; i < mSize; i++)
         {
-            for (var j = 0; j < Data.GetLength(1); j++)
+            for (var j = 0; j < mSize; j++)
             {
-                if (j == Data.GetLength(1) - 1) continue;
+                if(Data[i, j].Value == 0) continue;
 
-                if (Data[i, j] != 0)
+                var target = j;
+
+                var added = false;
+
+                for (var k = j - 1; k >= 0; k--)
                 {
-                    for (var k = j + 1; k < Data.GetLength(1); k++)
+                    if (Data[i, k].Value == 0)
                     {
-                        if (Data[i, k] == 0) continue;
+                        target = k;
+                    }
+                    else if (Data[i, k].Value == Data[i, j].Value)
+                    {
+                        target = k;
 
-                        if (Data[i, k] != Data[i, j]) break;
-
-                        AddScore(Data[i, j]);
-
-                        Data[i, j] *= 2;
-
-                        Data[i, k] = 0;
-
-                        mMoved = true;
+                        added = true;
 
                         break;
                     }
-                }
-                else
-                {
-                    for (var k = j + 1; k < Data.GetLength(1); k++)
+                    else
                     {
-                        if (Data[i, k] == 0) continue;
-
-                        if (Data[i, j] == 0)
-                        {
-                            Data[i, j] = Data[i, k];
-
-                            Data[i, k] = 0;
-
-                            mMoved = true;
-                        }
-                        else if (Data[i, j] == Data[i, k])
-                        {
-                            AddScore(Data[i, j]);
-
-                            Data[i, j] *= 2;
-
-                            Data[i, k] = 0;
-
-                            mMoved = true;
-                        }
+                        break;
                     }
+                }
+
+                if (added)
+                {
+                    Data[i, target].Value += Data[i, j].Value;
+
+                    Data[i, j].Value = 0;
+
+                    mMoved = true;
+                }
+                else if (target != j)
+                {
+                    Data[i, target].Value = Data[i, j].Value;
+
+                    Data[i, j].Value = 0;
+
+                    mMoved = true;
+
+                    AddScore(Data[i, target].Value);
                 }
             }
         }
@@ -306,25 +338,41 @@ public class GameDataModel
 
             do
             {
-                x = Random.Range(0, Data.GetLength(0));
+                x = Random.Range(0, mSize);
 
-                y = Random.Range(0, Data.GetLength(1));
-            } while (Data[x, y] != 0);
+                y = Random.Range(0, mSize);
+            } while (Data[x, y].Value != 0);
 
-            Data[x, y] = 2;
+            Data[x, y].Value = 2;
         }
     }
 
     bool GameOver()
     {
-        for (var i = 0; i < Data.GetLength(0); i++)
+        for (var i = 0; i < mSize; i++)
         {
-            for (var j = 0; j < Data.GetLength(1); j++)
+            for (var j = 0; j < mSize; j++)
             {
-                if (Data[i, j] == 0) return false;
+                if (Data[i, j].Value == 0) return false;
             }
         }
 
         return true;
+    }
+
+
+    public int[,] GetValue()
+    {
+        var array = new int[mSize, mSize];
+
+        for (var i = 0; i < mSize; i++)
+        {
+            for (var j = 0; j < mSize; j++)
+            {
+                array[i, j] = Data[i, j].Value;
+            }
+        }
+
+        return array;
     }
 }

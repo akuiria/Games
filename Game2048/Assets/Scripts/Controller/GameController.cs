@@ -4,23 +4,26 @@ using UnityEngine;
 
 public class GameController : MonoBehaviour
 {
+    public int Size = 4;
+
+
     private GameView mView;
 
     private GameDataModel mModel;
 
     private bool Playing;
     
-    private IInput InputModule;
+    private IInput mInputModule;
 
     void Start()
     {
-        mModel = new GameDataModel();
+        mModel = new GameDataModel(Size);
 
         mView = FindObjectOfType<GameView>();
 
-        InputModule = new KeyboardInput();
+        mInputModule = new KeyboardInput();
 
-        mView.Init();
+        mView.Init(Size);
 
         StartGame();
     }
@@ -38,7 +41,7 @@ public class GameController : MonoBehaviour
 
     public void ChangeView(GameDataModel model)
     {
-        mView.ChangeView(model.Data);
+        mView.ChangeView(model.GetValue());
     }
 
     public void ChangeScore(GameDataModel model)
@@ -74,17 +77,17 @@ public class GameController : MonoBehaviour
     {
         if (!Playing) return;
 
-        if (InputModule.GetUpCommand())
+        if (mInputModule.GetUpCommand())
         {
             Move(Direction.Up);
         }
-        else if (InputModule.GetDownCommand())
+        else if (mInputModule.GetDownCommand())
         {
             Move(Direction.Down);
-        }else if (InputModule.GetRightCommand())
+        }else if (mInputModule.GetRightCommand())
         {
             Move(Direction.Right);
-        }else if (InputModule.GetLeftCommand())
+        }else if (mInputModule.GetLeftCommand())
         {
             Move(Direction.Left);
         }
