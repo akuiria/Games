@@ -1,48 +1,25 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using DG.Tweening;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.UI;
 
 public class GridView : MonoBehaviour
 {
-    private Transform mRoot;
+    public Vector2 Position { get; private set; }
 
-    private Image mImage;
-
-    private Text mText;
-
-    public void Init()
+    public Vector2 Size { get; private set; }
+    
+    public void Init(float length)
     {
-        mRoot = transform.GetChild(0);
+        var rectTransform = ((RectTransform) transform);
 
-        mImage = mRoot.GetComponent<Image>();
+        rectTransform.sizeDelta = new Vector2(length, length);
 
-        mText = mRoot.GetComponentInChildren<Text>();
-    }
+        Size = rectTransform.sizeDelta;
 
-    public void SetText(int number)
-    {
-        if (number == 0)
-        {
-            mRoot.gameObject.SetActive(false);
-        }
-        else
-        {
-            mRoot.gameObject.SetActive(true);
-
-            mText.text = number.ToString();
-
-            mText.color = number == 2 || number == 4 ?
-                new Color(124 / 255f, 115 / 255f, 106 / 255f) :
-                new Color(1, 247 / 255f, 235 / 255f);
-
-            SetBackgroundColor(number);
-        }
-    }
-
-    private void SetBackgroundColor(int number)
-    {
-        mImage.color = TileColorHelpers.GetColor(number);
+        Position = rectTransform.anchoredPosition;
     }
 }

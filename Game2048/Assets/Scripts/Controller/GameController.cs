@@ -17,13 +17,13 @@ public class GameController : MonoBehaviour
 
     void Start()
     {
-        mModel = new GameDataModel(Size);
+        mModel = new GameDataModel(this, Size);
 
         mView = FindObjectOfType<GameView>();
 
         mInputModule = new KeyboardInput();
 
-        mView.Init(Size);
+        mView.Init(Size, 0);
 
         StartGame();
     }
@@ -31,48 +31,53 @@ public class GameController : MonoBehaviour
     public void StartGame()
     {
         mModel.Start();
-
-        ChangeView(mModel);
-
-        ChangeScore(mModel);
-
+        
         Playing = true;
     }
 
-    public void ChangeView(GameDataModel model)
+    public void RestartGame()
     {
-        mView.ChangeView(model.GetValue());
-    }
+        mView.Clear();
 
-    public void ChangeScore(GameDataModel model)
-    {
-        mView.ChangeScore(model.Score);
+        mModel.Restart();
+
+        UpdateScore(mModel.Score);
     }
 
     public void Move(Direction direction)
     {
         mModel.Move(direction);
-
-        ChangeView(mModel);
-
-        ChangeScore(mModel);
-
-        StartCoroutine(AnimationPlay());
     }
 
-    IEnumerator AnimationPlay()
+    public void AddView(List<CreateMessage> messages)
     {
-        Playing = false;
+        if (messages == null || messages.Count == 0) return;
 
-        yield return new WaitForSeconds(0.2f);
-
-        mModel.AddNumber();
-
-        ChangeView(mModel);
-
-        Playing = true;
+        mView.AddView(messages, () =>
+        {
+            Playing = true;
+        });
     }
 
+    public void MoveView(List<MoveMessage> messages)
+    {
+        if (messages == null || messages.Count == 0) return;
+        
+        mView.MoveView(messages, () =>
+        {
+            UpdateScore(mModel.Score);
+
+            mModel.CreateNumber();
+
+            Playing = true;
+        });
+    }
+
+    public void UpdateScore(int score)
+    {
+        mView.UpdateScore(score);
+    }
+   
     void Update()
     {
         if (!Playing) return;

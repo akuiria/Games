@@ -15,39 +15,20 @@ public class GameDataModel
 {
     private readonly int mSize;
 
+    private GameController mController;
+
     private bool mMoved;
-
-    private Func<int, int, int[]> mIteratorFunc = (start, end) =>
-    {
-        var length = Mathf.Abs(end - start);
-
-        var result = new int[length];
-
-        if (start < end)
-        {
-            for (var i = 0; i < length; i++)
-            {
-                result[i] = start + i;
-            }
-        }
-        else
-        {
-            for (var i = 0; i < length; i++)
-            {
-                result[i] = start - i;
-            }
-        }
-
-        return result;
-    };
+    
 
     public TileModel[,] Data { get; }
 
     public int Score { get; private set; }
     
 
-    public GameDataModel(int size)
+    public GameDataModel(GameController controller, int size)
     {
+        mController = controller;
+
         mSize = size;
 
         Data = new TileModel[mSize, mSize];
@@ -63,46 +44,66 @@ public class GameDataModel
 
     public void Start()
     {
-        mMoved = false;
+        mMoved = true;
 
         Score = 0;
+        
+        CreateNumber();
 
-        RandomNumber();
+        CreateNumber();
+    }
 
-        RandomNumber();
+    public void Restart()
+    {
+        for (var i = 0; i < mSize; i++)
+        {
+            for (var j = 0; j < mSize; j++)
+            {
+                Data[i, j].Value = 0;
+            }
+        }
+
+        Start();
     }
 
     public void Move(Direction direction)
     {
         mMoved = false;
 
+        var messages = new List<MoveMessage>();
+
         if (direction == Direction.Right)
         {
-            MoveRight();
-            
+            MoveRight(messages);
         }
         else if (direction == Direction.Left)
         {
-            MoveLeft();
-            
+            MoveLeft(messages);
         }
         else if (direction == Direction.Up)
         {
-            MoveUp();
-            
+            MoveUp(messages);
         }
         else if (direction == Direction.Down)
         {
-            MoveDown();
-            
+            MoveDown(messages);
         }
+
+        mController.MoveView(messages);
     }
     
-    public void AddNumber()
+    public void CreateNumber()
     {
         if (!mMoved) return;
 
-        RandomNumber();
+        var messages = new List<CreateMessage>();
+
+        RandomNumber(messages);
+
+        if (messages.Count != 0)
+        {
+            mController.AddView(messages);
+        }
     }
 
     public void AddScore(int score)
@@ -110,7 +111,7 @@ public class GameDataModel
         Score += score;
     }
 
-    void MoveRight()
+    void MoveRight(ICollection<MoveMessage> messages)
     {
         for (var j = 0; j < mSize; j++)
         {
@@ -148,6 +149,10 @@ public class GameDataModel
 
                     Data[i, j].Value = 0;
 
+                    messages.Add(new MoveMessage(i, j, target, j, Data[target, j].Value));
+                    
+                    AddScore(Data[target, j].Value);
+
                     mMoved = true;
                 }
                 else if (target != i)
@@ -156,15 +161,15 @@ public class GameDataModel
 
                     Data[i, j].Value = 0;
 
-                    mMoved = true;
+                    messages.Add(new MoveMessage(i, j, target, j, Data[target, j].Value));
 
-                    AddScore(Data[target, j].Value);
+                    mMoved = true;
                 }
             }
         }
     }
 
-    void MoveLeft()
+    void MoveLeft(ICollection<MoveMessage> messages)
     {
         for (var j = 0; j < mSize; j++)
         {
@@ -202,6 +207,10 @@ public class GameDataModel
 
                     Data[i, j].Value = 0;
 
+                    AddScore(Data[target, j].Value);
+
+                    messages.Add(new MoveMessage(i, j, target, j, Data[target, j].Value));
+
                     mMoved = true;
                 }
                 else if (target != i)
@@ -210,15 +219,15 @@ public class GameDataModel
 
                     Data[i, j].Value = 0;
 
-                    mMoved = true;
+                    messages.Add(new MoveMessage(i, j, target, j, Data[target, j].Value));
 
-                    AddScore(Data[target, j].Value);
+                    mMoved = true;
                 }
             }
         }
     }
 
-    void MoveUp()
+    void MoveUp(ICollection<MoveMessage> messages)
     {
         for (var i = 0; i < mSize; i++)
         {
@@ -256,6 +265,10 @@ public class GameDataModel
 
                     Data[i, j].Value = 0;
 
+                    AddScore(Data[i, target].Value);
+
+                    messages.Add(new MoveMessage(i, j, i, target, Data[i, target].Value));
+                    
                     mMoved = true;
                 }
                 else if (target != j)
@@ -264,15 +277,15 @@ public class GameDataModel
 
                     Data[i, j].Value = 0;
 
-                    mMoved = true;
+                    messages.Add(new MoveMessage(i, j, i, target, Data[i, target].Value));
 
-                    AddScore(Data[i, target].Value);
+                    mMoved = true;
                 }
             }
         }
     }
 
-    void MoveDown()
+    void MoveDown(ICollection<MoveMessage> messages)
     {
         for (var i = 0; i < mSize; i++)
         {
@@ -310,6 +323,10 @@ public class GameDataModel
 
                     Data[i, j].Value = 0;
 
+                    AddScore(Data[i, target].Value);
+
+                    messages.Add(new MoveMessage(i, j, i, target, Data[i, target].Value));
+
                     mMoved = true;
                 }
                 else if (target != j)
@@ -318,15 +335,15 @@ public class GameDataModel
 
                     Data[i, j].Value = 0;
 
-                    mMoved = true;
+                    messages.Add(new MoveMessage(i, j, i, target, Data[i, target].Value));
 
-                    AddScore(Data[i, target].Value);
+                    mMoved = true;
                 }
             }
         }
     }
 
-    void RandomNumber()
+    void RandomNumber(ICollection<CreateMessage> messages)
     {
         if (GameOver())
         {
@@ -344,6 +361,9 @@ public class GameDataModel
             } while (Data[x, y].Value != 0);
 
             Data[x, y].Value = 2;
+
+            //add number
+            messages.Add(new CreateMessage(x, y, 2));
         }
     }
 
@@ -359,8 +379,7 @@ public class GameDataModel
 
         return true;
     }
-
-
+    
     public int[,] GetValue()
     {
         var array = new int[mSize, mSize];
@@ -374,5 +393,33 @@ public class GameDataModel
         }
 
         return array;
+    }
+}
+
+public struct MoveMessage
+{
+    public int StartX, StartY, EndX, EndY, Value;
+
+    public MoveMessage(int startX, int startY, int endX, int endY, int value)
+    {
+        StartX = startX;
+        StartY = startY;
+        EndX = endX;
+        EndY = endY;
+
+        Value = value;
+    }
+}
+
+public struct CreateMessage
+{
+    public int X, Y, Value;
+
+    public CreateMessage(int x, int y,  int value)
+    {
+        X = x;
+        Y = y;
+
+        Value = value;
     }
 }

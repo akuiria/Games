@@ -1,59 +1,43 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using DG.Tweening;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.UI;
 
 public class GameView : MonoBehaviour
 {
-    private GridLayoutGroup mRoot;
-
+    private GridCollectionView mCollectionView;
+    
     [SerializeField]
-    private Text mScore;
-
-    private GridView[,] mGrids;
-
-    public void Init(int size)
+    private ScoreView mScoreView;
+    
+    public void Init(int size, int best)
     {
-        mRoot = GetComponentInChildren<GridLayoutGroup>();
+        mCollectionView = GetComponentInChildren<GridCollectionView>();
 
-        var length = (mRoot.GetComponent<RectTransform>().sizeDelta.x -
-                      (size + 1) * mRoot.spacing.x) / size;
+        mCollectionView.Init(size);
 
-        mRoot.cellSize = new Vector2(length, length);
-        
-        var prefab = mRoot.transform.GetChild(0).
-            GetComponent<GridView>();
-
-        mGrids = new GridView[size, size];
-
-        for (var i = 0; i < mGrids.GetLength(0); i++)
-        {
-            for (var j = 0; j < mGrids.GetLength(1); j++)
-            {
-                mGrids[i,j] = Instantiate(prefab, mRoot.transform);
-
-                mGrids[i, j].Init();
-                
-                mGrids[i,j].gameObject.SetActive(true);
-                
-                mGrids[i, j].gameObject.name = $"{i},{j}";
-            }
-        }
+        mScoreView.Init(best);
+    }
+    
+    public void AddView(List<CreateMessage> messages, UnityAction action)
+    {
+        mCollectionView.AddView(messages, action);
     }
 
-    public void ChangeView(int[,] data)
+    public void MoveView(List<MoveMessage> messages, UnityAction action)
     {
-        for (var i = 0; i < mGrids.GetLength(0); i++)
-        {
-            for (var j = 0; j < mGrids.GetLength(1); j++)
-            {
-                mGrids[i, j].SetText(data[i, j]);
-            }
-        }
+        mCollectionView.MoveView(messages, action);
     }
 
-    public void ChangeScore(int score)
+    public void UpdateScore(int score)
     {
-        mScore.text = score.ToString();
+        mScoreView.UpdateScore(score);
+    }
+
+    public void Clear()
+    {
+        mCollectionView.Clear();
     }
 }
