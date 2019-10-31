@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -11,61 +12,51 @@ public enum Direction
     Up,Right,Down,Left
 }
 
-public class GameDataModel
+public class GameModel : Model
 {
-    private readonly int mSize;
+    public override string Name { get; }
 
-    private GameController mController;
-
+    private int mSize;
+    
     private bool mMoved;
+
+    private Tile[,] Data;
+
+    private int Score;
     
 
-    public TileModel[,] Data { get; }
-
-    public int Score { get; private set; }
-    
-
-    public GameDataModel(GameController controller, int size)
+    public GameModel()
     {
-        mController = controller;
+        Name = nameof(GameModel);
+    }
 
-        mSize = size;
+    public void Start()
+    {
+        mSize = Config.TileNumber;
 
-        Data = new TileModel[mSize, mSize];
+        Data = new Tile[mSize, mSize];
 
         for (var i = 0; i < mSize; i++)
         {
             for (var j = 0; j < mSize; j++)
             {
-                Data[i, j] = new TileModel(i, j, 0);
+                Data[i, j] = new Tile(i, j, 0);
             }
         }
-    }
 
-    public void Start()
-    {
         mMoved = true;
 
         Score = 0;
+
+        SendEvent(EventNameCollection.StartGame);
+        
+        SendEvent(EventNameCollection.UpdateScore, Score);
         
         CreateNumber();
 
         CreateNumber();
     }
-
-    public void Restart()
-    {
-        for (var i = 0; i < mSize; i++)
-        {
-            for (var j = 0; j < mSize; j++)
-            {
-                Data[i, j].Value = 0;
-            }
-        }
-
-        Start();
-    }
-
+    
     public void Move(Direction direction)
     {
         mMoved = false;
@@ -89,7 +80,7 @@ public class GameDataModel
             MoveDown(messages);
         }
 
-        mController.MoveView(messages);
+        SendEvent(EventNameCollection.MoveTile, messages);
     }
     
     public void CreateNumber()
@@ -102,13 +93,15 @@ public class GameDataModel
 
         if (messages.Count != 0)
         {
-            mController.AddView(messages);
+            SendEvent(EventNameCollection.AddTile, messages);
         }
     }
 
     public void AddScore(int score)
     {
         Score += score;
+
+        SendEvent(EventNameCollection.UpdateScore, Score);
     }
 
     void MoveRight(ICollection<MoveMessage> messages)
@@ -378,21 +371,6 @@ public class GameDataModel
         }
 
         return true;
-    }
-    
-    public int[,] GetValue()
-    {
-        var array = new int[mSize, mSize];
-
-        for (var i = 0; i < mSize; i++)
-        {
-            for (var j = 0; j < mSize; j++)
-            {
-                array[i, j] = Data[i, j].Value;
-            }
-        }
-
-        return array;
     }
 }
 

@@ -5,39 +5,121 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
 
-public class GameView : MonoBehaviour
+public class GameView : View
 {
-    private GridCollectionView mCollectionView;
-    
-    [SerializeField]
-    private ScoreView mScoreView;
-    
-    public void Init(int size, int best)
+    private IInput inputModule = new KeyboardInput();
+
+    private bool mPlaying = false;
+
+    public override string Name { get; } = "GameView";
+
+    public override void HandleEvent(string name, object data)
     {
-        mCollectionView = GetComponentInChildren<GridCollectionView>();
+        if (name == EventNameCollection.StartGame)
+        {
+            mPlaying = true;
+        }
+        else if (name == EventNameCollection.AddTile)
+        {
+            //mPlaying = false;
+        }
 
-        mCollectionView.Init(size);
+        else if (name == EventNameCollection.MoveTile)
+        {
+            //mPlaying = false;
+        }
+        else if (name == EventNameCollection.ViewComplete)
+        {
+            //mPlaying = true;
+        }
+    }
 
-        mScoreView.Init(best);
+    public override void RegisterAttentionEvent()
+    {
+        AttentionList.Add(EventNameCollection.StartGame);
+
+        AttentionList.Add(EventNameCollection.AddTile);
+
+        AttentionList.Add(EventNameCollection.MoveTile);
+
+        AttentionList.Add(EventNameCollection.ViewComplete);
+    }
+
+    void Update()
+    {
+        if (!mPlaying) return;
+
+        if (inputModule.GetRightCommand())
+        {
+            SendEvent(EventNameCollection.MoveTileModel, Direction.Right);
+        }
+        else if (inputModule.GetLeftCommand())
+        {
+            SendEvent(EventNameCollection.MoveTileModel, Direction.Left);
+        }
+        else if (inputModule.GetUpCommand())
+        {
+            SendEvent(EventNameCollection.MoveTileModel, Direction.Up);
+        }
+        else if (inputModule.GetDownCommand())
+        {
+            SendEvent(EventNameCollection.MoveTileModel, Direction.Down);
+        }
+
+        MouseInput();
+    }
+
+    private Vector3 downPosition;
+
+    private Vector3 offsetPosition;
+
+    private const float MinOffset = 100;
+
+    void MouseInput()
+    {
+        if (Input.GetMouseButtonDown(0))
+        {
+            downPosition = Input.mousePosition;
+        }
+        else if (Input.GetMouseButtonUp(0))
+        {
+            offsetPosition = Input.mousePosition - downPosition;
+
+            if (Mathf.Abs(offsetPosition.x) < MinOffset &&
+                Mathf.Abs(offsetPosition.y) < MinOffset) return;
+
+            if (Mathf.Abs(offsetPosition.x) > Mathf.Abs(offsetPosition.y))
+            {
+                if (offsetPosition.x > MinOffset)
+                {
+                    SendEvent(EventNameCollection.MoveTileModel, Direction.Right);
+                }
+                else if (offsetPosition.x < MinOffset)
+                {
+                    SendEvent(EventNameCollection.MoveTileModel, Direction.Left);
+                }
+            }
+            else
+            {
+                if (offsetPosition.y > MinOffset)
+                {
+                    SendEvent(EventNameCollection.MoveTileModel, Direction.Up);
+                }
+                else if (offsetPosition.y < MinOffset)
+                {
+                    SendEvent(EventNameCollection.MoveTileModel, Direction.Down);
+                }
+            }
+        }
+    }
+
+    void OnGUI()
+    {
+        GUILayout.Label("Input State: " + mPlaying.ToString());
     }
     
-    public void AddView(List<CreateMessage> messages, UnityAction action)
+    public void StartGame()
     {
-        mCollectionView.AddView(messages, action);
-    }
-
-    public void MoveView(List<MoveMessage> messages, UnityAction action)
-    {
-        mCollectionView.MoveView(messages, action);
-    }
-
-    public void UpdateScore(int score)
-    {
-        mScoreView.UpdateScore(score);
-    }
-
-    public void Clear()
-    {
-        mCollectionView.Clear();
+        SendEvent(EventNameCollection.NewGame, EventNameCollection.NewGame);
     }
 }

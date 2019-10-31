@@ -27,6 +27,11 @@ public static class TileColorHelpers
 
     public static Color GetColor(int number)
     {
-        return mDict[number];
+        if (number < 2048)
+        {
+            return mDict[number];
+        }
+
+        return mDict[2048];
     }
 }

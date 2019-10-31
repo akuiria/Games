@@ -3,34 +3,40 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class ScoreView : MonoBehaviour
+public class ScoreView : View
 {
-    private int Best;
-
     [SerializeField]
     private Text mBest;
 
     [SerializeField]
     private Text mGame;
-
-    public void Init(int best)
+    
+    public override string Name { get; } = "ScoreView";
+    public override void HandleEvent(string name, object data)
     {
-        Best = best;
+        if (name == EventNameCollection.NewGame)
+        {
+            mGame.text = "0";
+            mBest.text = Config.BestScore.ToString();
+        }
+        else if (name == EventNameCollection.UpdateScore)
+        {
+            var score = (int) data;
 
-        mBest.text = best.ToString();
+            mGame.text = score.ToString();
 
-        mGame.text = "0";
+            if (score > Config.BestScore)
+            {
+                Config.BestScore = score;
+                mBest.text = Config.BestScore.ToString();
+            }
+        }
     }
 
-    public void UpdateScore(int score)
+    public override void RegisterAttentionEvent()
     {
-        mGame.text = score.ToString();
+        AttentionList.Add(EventNameCollection.NewGame);
 
-        if (score > Best)
-        {
-            Best = score;
-
-            mBest.text = score.ToString();
-        }
+        AttentionList.Add(EventNameCollection.UpdateScore);
     }
 }

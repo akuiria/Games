@@ -3,10 +3,12 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
-public class GridCollectionView : MonoBehaviour
+public class GridCollectionView : View
 {
+    [SerializeField]
     private GridView mGridPrefab;
 
+    [SerializeField]
     private TileView mTilePrefab;
 
     private float mBorder = 10;
@@ -15,16 +17,12 @@ public class GridCollectionView : MonoBehaviour
 
     private float mGridSize;
 
-    public GridView[,] Grids { get; private set; }
+    private GridView[,] Grids { get; set; }
 
     private TileView[,] Tiles { get; set; }
 
-    public void Init(int size)
+    void Init(int size)
     {
-        mGridPrefab = transform.GetChild(0).GetComponent<GridView>();
-
-        mTilePrefab = transform.GetChild(1).GetComponent<TileView>();
-
         var maxLength = ((RectTransform) transform).rect.width;
 
         mGridSize = (maxLength - (size + 1) * mBorder) / size;
@@ -65,17 +63,17 @@ public class GridCollectionView : MonoBehaviour
         }
     }
 
-    public void AddView(List<CreateMessage> messages, UnityAction action)
+    void AddView(List<CreateMessage> messages)
     {
         foreach (var message in messages)
         {
             Tiles[message.X, message.Y].ShowText(message.Value, mTime);
         }
 
-        StartCoroutine(OnMoveOver(action));
+        StartCoroutine(OnViewComplete());
     }
     
-    public void MoveView(List<MoveMessage> messages, UnityAction action)
+    void MoveView(List<MoveMessage> messages)
     {
         foreach (var message in messages)
         {
@@ -88,24 +86,80 @@ public class GridCollectionView : MonoBehaviour
                 });
         }
 
-        StartCoroutine(OnMoveOver(action));
+        StartCoroutine(OnViewComplete());
+
+        StartCoroutine(OnMoveComplete());
     }
 
-    IEnumerator OnMoveOver(UnityAction action)
+    IEnumerator OnViewComplete()
+    {
+        yield return new WaitForSeconds(mTime);
+        
+        SendEvent(EventNameCollection.ViewComplete);
+    }
+
+    IEnumerator OnMoveComplete()
     {
         yield return new WaitForSeconds(mTime);
 
-        action.Invoke();
+        SendEvent(EventNameCollection.AddTileModel, EventNameCollection.AddTileModel);
     }
 
-    public void Clear()
+    void Clear()
     {
-        for (var i = 0; i < Tiles.GetLength(0); i++)
+        if (Grids != null)
         {
-            for (var j = 0; j < Tiles.GetLength(1); j++)
+            for (var i = 0; i < Grids.GetLength(0); i++)
             {
-                Tiles[i, j].SetText(0);
+                for (var j = 0; j < Grids.GetLength(1); j++)
+                {
+                    DestroyImmediate(Grids[i, j].gameObject);
+                }
             }
+
+            Grids = null;
         }
+
+        if (Tiles != null)
+        {
+            for (var i = 0; i < Tiles.GetLength(0); i++)
+            {
+                for (var j = 0; j < Tiles.GetLength(1); j++)
+                {
+                    DestroyImmediate(Tiles[i, j].gameObject);
+                }
+            }
+
+            Tiles = null;
+        }
+    }
+    
+    public override string Name { get; } = "GridCollectionView";
+
+    public override void HandleEvent(string name, object data)
+    {
+        if (name == EventNameCollection.StartGame)
+        {
+            Clear();
+
+            Init(Config.TileNumber);
+        }
+        else if (name == EventNameCollection.MoveTile)
+        {
+            MoveView((List<MoveMessage>)data);
+        }
+        else if (name == EventNameCollection.AddTile)
+        {
+            AddView((List<CreateMessage>) data);
+        }
+    }
+
+    public override void RegisterAttentionEvent()
+    {
+        AttentionList.Add(EventNameCollection.StartGame);
+
+        AttentionList.Add(EventNameCollection.MoveTile);
+
+        AttentionList.Add(EventNameCollection.AddTile);
     }
 }
